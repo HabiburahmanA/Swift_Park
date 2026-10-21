@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Swift_Park</title>
+<title>SwiftPark</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <style>
 :root{--bg:#f4f5f7;--card:#fff;--ink:#14181f;--mute:#4a5361;--line:#8a93a3;--pri:#0b4fb3;--priink:#fff;--ok:#0b6b2e;--okbg:#e3f4e8;--warn:#8a4b00;--warnbg:#fff0d6;--bad:#a1181b;--badbg:#fde6e6;--sim:#efe9ff;--simink:#3b2a7a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);color-scheme:light dark}
@@ -69,11 +69,15 @@ textarea{width:100%;min-height:96px;font:inherit;padding:8px;border:2px solid va
 .wtin{max-width:900px;margin:0 auto;padding:12px 16px 28px}.wtbar{display:flex;justify-content:space-between;align-items:center;gap:8px}.wtbar h2{margin:0;font-size:20px}.wtx{width:auto}
 .wtview{overflow:auto;border:2px solid var(--line);border-radius:10px;background:#fff;margin:10px 0;max-height:64vh}.wtview img{display:block;width:100%;height:auto}.wtview.z img{width:230%;max-width:none}
 .wtin .seg{margin:10px 0}
+.flow{position:sticky;top:0;z-index:6;margin:0 0 8px;padding:10px 12px;background:var(--card);border:2px solid var(--pri);border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+#flow{padding:0 16px}
+.flowdots{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:8px}.flowdots button{min-height:44px;padding:0}.flowdots button[aria-current="true"]{background:var(--pri);color:var(--priink)}
 </style>
 </head>
 <body>
 <div class="app">
-<header><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h1>SwiftPark</h1><button class="wtopen" data-a="wtopen">▶ Walkthrough</button></div><p class="foot" style="margin:4px 0 0">Prototype with a simulated workflow. Sample values and extra features are illustrative, not approved policy.</p></header>
+<header><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h1>SwiftPark</h1><div style="display:flex;gap:6px;flex:none"><button class="wtopen" data-a="flowopen" aria-label="Guided flow">▶ Flow</button><button class="wtopen" data-a="wtopen">▶ Walkthrough</button></div></div><p class="foot" style="margin:4px 0 0">Prototype with a simulated workflow. Sample values and extra features are illustrative, not approved policy.</p></header>
+<div id="flow"></div>
 <div class="tabs" id="subtabs" role="tablist"></div>
 <main id="main" aria-live="polite"></main>
 <div class="simwrap" id="sim"></div>
@@ -349,15 +353,32 @@ ${s.n?`<div class="card"><b>Notes</b><p style="margin:6px 0 0">${esc(s.n)}</p></
 <div class="btns"><button data-a="wtdl">Download PowerPoint</button></div><p role="status" class="nt" style="font-size:14px">${esc(WT.msg)}</p></div>`;
 const t=WT.focus?document.querySelector('#wt [data-a="wtclose"]'):(key?el.querySelector(key):null);WT.focus=0;if(t)t.focus()}
 document.addEventListener('keydown',e=>{if(!WT.open)return;if(e.key==='Escape'){WT.open=false;wtDraw();return}if(e.target.matches&&e.target.matches('select,input,textarea'))return;if(e.key==='ArrowRight'&&WT.i<WT_SLIDES.length-1){WT.i++;wtDraw()}if(e.key==='ArrowLeft'&&WT.i>0){WT.i--;wtDraw()}});
+const FL={on:false,i:0};
+const FLOW=[
+{g:'Solution 1 · Booking loop',t:'Booking confirmed',h:'The arrival deadline (14:10) is shown with a simulated countdown. Tap “I’ve parked” to confirm, or press Next.',a:()=>{S.sec='driver';S.dt='find';S.dview='booking';S.d='booking';S.sensor='vacant';S.cm=835;S.sat=835;S.w='list';S.failNext=false}},
+{g:'Solution 1 · Booking loop',t:'Driver confirms',h:'“I’ve parked” confirms arrival, so the reservation stays valid.',a:()=>{S.sec='driver';S.dt='find';S.dview='booking';S.d='arrived';S.sensor='occupied';S.cm=845;S.sat=845}},
+{g:'Solution 1 · Booking loop',t:'Reservation expires',core:'A booking that never ends',h:'No confirmation by 14:10, so the reservation expires. An occupied space stays blocked.',a:()=>{S.sec='driver';S.dt='find';S.dview='booking';S.d='expired';S.sensor='occupied';S.cm=851;S.sat=851}},
+{g:'Solution 2 · Warden reliability',t:'Booking details',h:'The warden checks the vehicle, scrolls to the actions and picks one.',a:()=>{S.sec='warden';S.wt='bookings';S.wlot='Z2';S.sel='B14';S.w='detail';S.d='booking';S.sensor='vacant';S.cm=835;S.sat=835;S.save=null}},
+{g:'Solution 2 · Warden reliability',t:'Save fails',core:'A record nobody can trust',h:'The save fails and says so. Nothing is recorded until Retry save succeeds.',a:()=>{S.sec='warden';S.wt='bookings';S.wlot='Z2';S.sel='B14';S.d='booking';S.failNext=false;S.save={kind:'act',id:'B14',val:'valid'};S.w='failed'}},
+{g:'Solution 2 · Warden reliability',t:'Action saved',h:'Success is shown only after the save is confirmed.',a:()=>{S.sec='warden';S.wt='bookings';S.wlot='Z2';S.sel='B14';S.d='booking';S.save=null;S.acts.B14='valid';S.w='saved'}}];
+function flowApply(){FLOW[FL.i].a();S.dlOpen=false}
+function flowDraw(){const el=document.getElementById('flow');if(!el)return;if(!FL.on){el.innerHTML='';return}
+const s=FLOW[FL.i],n=FLOW.length;
+el.innerHTML=`<div class="flow" role="region" aria-label="Guided flow"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="tag nt">${s.g}</span><button class="wtx" data-a="flowclose" style="min-height:40px;padding:4px 10px">Close</button></div><p style="margin:6px 0 2px"><b>Step ${FL.i+1} of ${n}: ${s.t}</b> ${s.core?'<span class="tag bad">Core problem</span>':''}</p><p class="nt" style="font-size:15px;margin:2px 0 8px">${s.core?'<b>'+s.core+'.</b> ':''}${s.h}</p><div class="seg"><button data-a="flowprev" ${FL.i===0?'disabled':''}>← Back</button><button class="p" data-a="flownext" ${FL.i===n-1?'disabled':''}>Next →</button></div><div class="flowdots" role="group" aria-label="Jump to step">${FLOW.map((x,i)=>`<button data-a="flowgo:${i}" aria-label="Step ${i+1}: ${x.t}" aria-current="${i===FL.i}">${i+1}</button>`).join('')}</div></div>`}
 function render(){
 const drv=S.sec==='driver',subs=drv?[['find','Find parking'],['report','My report']]:[['lot','Lot'],['bookings','Bookings'],['report','Report']],cur=drv?S.dt:S.wt;
 document.getElementById('subtabs').innerHTML=subs.map(([k,t])=>`<button role="tab" data-a="sub:${k}" aria-selected="${cur===k}">${t}</button>`).join('');
 document.getElementById('main').innerHTML=drv?(S.dt==='find'?(S.dview==='booking'?myBooking():S.dview==='lot'?lotView():findList()):driverReport()):(S.wt==='lot'?wLot():S.wt==='bookings'?wBook():wReport());
 document.getElementById('sim').innerHTML=simHTML();
-document.getElementById('n-driver').setAttribute('aria-pressed',drv);document.getElementById('n-warden').setAttribute('aria-pressed',!drv);wtDraw();}
+document.getElementById('n-driver').setAttribute('aria-pressed',drv);document.getElementById('n-warden').setAttribute('aria-pressed',!drv);wtDraw();flowDraw();}
 
 document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el||el.disabled)return;const [a,v]=el.dataset.a.split(':');
-if(a==='wtopen'){WT.open=true;WT.msg='';WT.focus=1}
+if(a==='flowopen'){FL.on=!FL.on;if(FL.on){FL.i=0;flowApply()}}
+else if(a==='flowclose'){FL.on=false}
+else if(a==='flowprev'){FL.i=Math.max(0,FL.i-1);flowApply()}
+else if(a==='flownext'){FL.i=Math.min(FLOW.length-1,FL.i+1);flowApply()}
+else if(a==='flowgo'){FL.i=+v;flowApply()}
+else if(a==='wtopen'){WT.open=true;WT.msg='';WT.focus=1}
 else if(a==='wtclose'){WT.open=false}
 else if(a==='wtprev'){WT.i=Math.max(0,WT.i-1)}
 else if(a==='wtnext'){WT.i=Math.min(WT_SLIDES.length-1,WT.i+1)}
@@ -413,7 +434,7 @@ else if(a==='sfilter')S.sf=v;
 else if(a==='dlopen')S.dlOpen=!S.dlOpen;
 else if(a==='dlf'){S.dl=v;S.dlmsg=''}
 else if(a==='dlgo'){doDownload();return}
-render();if(['wttry','sec','sub','open','wopen','list','act','call','callend','vedit','vsave','vclear','reset','lot','lots','mybk','myspot','msgopen','vsend'].includes(a))window.scrollTo(0,0)});
+render();if(['flowopen','flowprev','flownext','flowgo','wttry','sec','sub','open','wopen','list','act','call','callend','vedit','vsave','vclear','reset','lot','lots','mybk','myspot','msgopen','vsend'].includes(a))window.scrollTo(0,0)});
 document.addEventListener('change',e=>{
 if(e.target.matches('[data-ack]')){S.ack=e.target.checked;render();const c=document.querySelector('[data-ack]');if(c)c.focus()}
 else if(e.target.matches('[data-wtgo]')){WT.i=+e.target.value;wtDraw();const c=document.getElementById('wtgo');if(c)c.focus()}
